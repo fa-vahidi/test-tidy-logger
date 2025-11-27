@@ -115,6 +115,7 @@ jobs:
             echo "::warning title=Check 'tests' directory::'tests' directory does not exist."
             echo "::warning title=Check 'tests' directory::Python tests will not be executed!"
           fi
+          cat $GITHUB_OUTPUT
 
   test_python_no_env:
     needs: [check_code_style, check_tests_directory]
