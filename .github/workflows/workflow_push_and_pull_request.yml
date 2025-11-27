@@ -115,7 +115,7 @@ jobs:
             echo "::warning title=Check 'tests' directory::'tests' directory does not exist."
             echo "::warning title=Check 'tests' directory::Python tests will not be executed!"
           fi
-          echo.
+          echo ""
           echo "Content of GITHUB_OUTPUT file at $GITHUB_OUTPUT:"
           cat $GITHUB_OUTPUT
 
