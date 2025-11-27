@@ -1,0 +1,201 @@
+name: Workflow on Push and Pull Request
+
+on: [push, pull_request]
+
+jobs:
+
+  dump_github_context:
+    name: Dump GitHub Context
+    runs-on: ubuntu-latest
+    steps:
+
+      - name: Dump 'github' context
+        env:
+          GITHUB_CONTEXT: ${{ toJson(github) }}
+        run: |
+          echo "'github' context:"
+          echo "$GITHUB_CONTEXT"
+
+      - name: Dump 'github.event' context
+        env:
+          GITHUB_EVENT_CONTEXT: ${{ toJson(github.event) }}
+        run: |
+          echo "'github.event' context:"
+          echo "$GITHUB_EVENT_CONTEXT"
+
+      - name: Dump 'github.event.workflow_run' context
+        env:
+          GITHUB_EVENT_WFR_CONTEXT: ${{ toJson(github.event.workflow_run) }}
+        run: |
+          echo "'github.event.workflow_run' context:"
+          echo "$GITHUB_EVENT_WFR_CONTEXT"
+
+  check_code_style:
+    name: Check Code Style
+    runs-on: ubuntu-latest
+    steps:
+
+      - &checkout_code
+        name: Checkout Code
+        uses: actions/checkout@v6
+        with:
+          repository: ${{ github.event.workflow_run.head_repository.full_name || github.repository }}
+          ref: ${{ github.event.workflow_run.head_sha || github.event.workflow_run.head_branch || github.ref }}
+          token: ${{ secrets.GITHUB_TOKEN }}
+          fetch-depth: 0
+
+      - name: Set Up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: '3.x'
+
+      - name: Install Tools
+        run: |
+          pip install isort black flake8 yamllint
+
+      - name: Run isort
+        run: |
+          FILES=$(find . -name "*.py")
+          if [ -z "$FILES" ]; then
+            echo "::warning title=isort::No Python files found for isort."
+          else
+            find . -name "*.py" -print0 | xargs -0 isort --line-length=180 --profile=black
+          fi
+
+      - name: Run black
+        run: |
+          FILES=$(find . -name "*.py")
+          if [ -z "$FILES" ]; then
+            echo "::warning title=black::No Python files found for black."
+          else
+            find . -name "*.py" -print0 | xargs -0 black --line-length=180
+          fi
+
+      - name: Run flake8
+        run: |
+          FILES=$(find . -name "*.py")
+          if [ -z "$FILES" ]; then
+            echo "::warning title=flake8::No Python files found for flake8."
+          else
+            find . -name "*.py" -print0 | xargs -0 flake8 --ignore=E265,E266,E501,E731,F401,W503,W504
+          fi
+
+      - name: Run yamllint
+        run: |
+          FILES=$(find . -type f \( -name "*.yml" -o -name "*.yaml" \))
+          if [ -z "$FILES" ]; then
+            echo "::warning title=yamllint::No YAML files found for yamllint."
+          else
+            find . -type f \( -name "*.yml" -o -name "*.yaml" \) -print0 \
+            | xargs -0 yamllint -d "{extends: relaxed, rules: {line-length: {max: 180}}}"
+          fi
+
+  check_tests_directory:
+    needs: check_code_style
+    name: Check 'tests' Directory
+    runs-on: ubuntu-latest
+    outputs:
+      tests_exists: ${{ steps.check_tests_directory.outputs.tests_exists }}
+    steps:
+
+      - *checkout_code
+
+      - id: check_tests_directory
+        name: Check Whether 'tests' Directory Exists
+        run: |
+          echo "Current directory:"
+          pwd
+          echo "Directory content:"
+          ls -a
+          if [ -d "./tests" ]; then
+            echo "tests_exists=true" >> $GITHUB_OUTPUT
+            echo "::notice title=Check 'tests' directory::'tests' directory exists."
+          else
+            echo "tests_exists=false" >> $GITHUB_OUTPUT
+            echo "::warning title=Check 'tests' directory::'tests' directory does not exist."
+            echo "::warning title=Check 'tests' directory::Python tests will not be executed!"
+          fi
+
+  test_python_no_env:
+    needs: [check_code_style, check_tests_directory]
+    if: ${{ needs.check_tests_directory.outputs.tests_exists == 'true' }}
+    name: Test Python Code on Operating System
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest]
+        python-version: ['3.x']
+      fail-fast: false  # Continue testing other platforms even if one fails
+    steps:
+
+      - *checkout_code
+
+      - name: Set Up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v6
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Cache pip Packages
+        id: cache-pip-packages
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cache/pip
+          key: pip-packages-${{ runner.os }}-python-${{ matrix.python-version }}-${{ hashFiles('requirements.txt') }}
+          restore-keys: pip-packages-${{ runner.os }}-python-${{ matrix.python-version }}-
+
+      - name: Install Dependencies (Without Virtual Environment)
+        run: |
+          pip install -r ./requirements.txt
+
+      - name: Run Python Tests
+        run: |
+          pytest tests/
+
+  test_python_conda:
+    needs: [check_code_style, check_tests_directory]
+    if: ${{ needs.check_tests_directory.outputs.tests_exists == 'true' }}
+    name: Test Python Code Using conda Virtual Environment
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest]
+        python-version: ['3.x']
+      fail-fast: false  # Continue testing other platforms even if one fails
+    steps:
+
+      - *checkout_code
+
+      - name: Set Up conda
+        uses: conda-incubator/setup-miniconda@v3
+        with:
+          activate-environment: logger
+          auto-activate-base: false
+          auto-update-conda: true
+          miniconda-version: "latest"
+          python-version: ${{ matrix.python-version }}
+
+      - name: Check conda Einvironment Parameter
+        run: |
+          echo "conda path: $CONDA"
+
+      - name: Cache conda Packages
+        id: cache-conda-packages
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/conda_pkgs_dir
+            ${{ env.CONDA }}/pkgs
+          key: conda-packages-${{ runner.os }}-python-${{ matrix.python-version }}-${{ hashFiles('environment.yml') }}
+          restore-keys: conda-packages-${{ runner.os }}-python-${{ matrix.python-version }}-
+
+      - name: Set Up conda Environment and Run Python Tests
+        run: |
+          conda init
+          source ~/.bashrc
+          source "$CONDA/etc/profile.d/conda.sh"
+          conda info
+          conda env list
+          conda activate logger
+          conda env update -f ./environment.yml
+          pytest tests/
