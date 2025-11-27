@@ -1,6 +1,6 @@
 name: Workflow on Push and Pull Request
 
-on: [push, pull_request]
+on: [pull_request]
 
 jobs:
 
