@@ -134,6 +134,7 @@ jobs:
       - *checkout_code
 
       - name: Set Up Python ${{ matrix.python-version }}
+        id: set-up-python
         uses: actions/setup-python@v6
         with:
           python-version: ${{ matrix.python-version }}
@@ -144,7 +145,7 @@ jobs:
         with:
           path: |
             ~/.cache/pip
-          key: pip-packages-${{ runner.os }}-python-${{ matrix.python-version }}-${{ hashFiles('requirements.txt') }}
+          key: pip-packages-${{ runner.os }}-python-${{ steps.set-up-python.outputs.python-version }}-${{ hashFiles('requirements.txt') }}
           restore-keys: pip-packages-${{ runner.os }}-python-${{ matrix.python-version }}-
 
       - name: Install Dependencies (Without Virtual Environment)
@@ -170,6 +171,7 @@ jobs:
       - *checkout_code
 
       - name: Set Up Python ${{ matrix.python-version }}
+        id: set-up-python
         uses: actions/setup-python@v6
         with:
           python-version: ${{ matrix.python-version }}
@@ -183,7 +185,7 @@ jobs:
             ~/.config/pypoetry
             ~/.local/bin
             ~/.local/share/pypoetry
-          key: pypoetry-packages-${{ runner.os }}-python-${{ matrix.python-version }}-${{ hashFiles('pyproject.toml') }}
+          key: pypoetry-packages-${{ runner.os }}-python-${{ steps.set-up-python.outputs.python-version }}-${{ hashFiles('pyproject.toml') }}
           restore-keys: pypoetry-packages-${{ runner.os }}-python-${{ matrix.python-version }}-
 
       - name: Install Poetry
