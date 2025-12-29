@@ -1,5 +1,5 @@
 [project]
-name = "test-tidy-logger"
+name = "tidy-logger"
 dynamic = [ "version", "classifiers" ]
 description = "A Python logging utility that generates indented log messages with color-coding for different log levels on the console, and also supports logging to files for better tracking and debugging."
 keywords = [ "logging", "indented", "colored", "coloured" ]
