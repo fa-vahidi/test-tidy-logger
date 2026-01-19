@@ -115,6 +115,8 @@ jobs:
             echo "::warning title=Check 'tests' directory::'tests' directory does not exist."
             echo "::warning title=Check 'tests' directory::Python tests will not be executed!"
           fi
+          echo ""
+          echo "Content of GITHUB_OUTPUT file at $GITHUB_OUTPUT:"
           cat $GITHUB_OUTPUT
 
   test_python_no_env:
@@ -132,6 +134,7 @@ jobs:
       - *checkout_code
 
       - name: Set Up Python ${{ matrix.python-version }}
+        id: set-up-python
         uses: actions/setup-python@v6
         with:
           python-version: ${{ matrix.python-version }}
@@ -142,7 +145,7 @@ jobs:
         with:
           path: |
             ~/.cache/pip
-          key: pip-packages-${{ runner.os }}-python-${{ matrix.python-version }}-${{ hashFiles('requirements.txt') }}
+          key: pip-packages-${{ runner.os }}-python-${{ steps.set-up-python.outputs.python-version }}-${{ hashFiles('requirements.txt') }}
           restore-keys: pip-packages-${{ runner.os }}-python-${{ matrix.python-version }}-
 
       - name: Install Dependencies (Without Virtual Environment)
@@ -152,6 +155,57 @@ jobs:
       - name: Run Python Tests
         run: |
           pytest tests/
+
+  test_python_poetry:
+    needs: [check_code_style, check_tests_directory]
+    if: ${{ needs.check_tests_directory.outputs.tests_exists == 'true' }}
+    name: Test Python Code Using Poetry Virtual Environment
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest]
+        python-version: ['3.x']
+      fail-fast: false  # Continue testing other platforms even if one fails
+    steps:
+
+      - *checkout_code
+
+      - name: Set Up Python ${{ matrix.python-version }}
+        id: set-up-python
+        uses: actions/setup-python@v6
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Cache Poetry Packages
+        id: cache-poetry-packages
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cache/pypoetry
+            ~/.config/pypoetry
+            ~/.local/bin
+            ~/.local/share/pypoetry
+          key: pypoetry-packages-${{ runner.os }}-python-${{ steps.set-up-python.outputs.python-version }}-${{ hashFiles('pyproject.toml') }}
+          restore-keys: pypoetry-packages-${{ runner.os }}-python-${{ matrix.python-version }}-
+
+      - name: Install Poetry
+        run: |
+          curl -sSL https://install.python-poetry.org | python3 -
+          export PATH="$HOME/.local/bin:$PATH"
+          echo "$(poetry --version) has been installed."
+
+      - name: List the Poetry Configuration
+        run: |
+          poetry config --list
+
+      - name: Install Dependencies Using Poetry
+        run: |
+          poetry install --no-root
+          poetry env info
+
+      - name: Run Python Tests Inside the Poetry Environment
+        run: |
+          poetry run pytest tests/
 
   test_python_conda:
     needs: [check_code_style, check_tests_directory]
