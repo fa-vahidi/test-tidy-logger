@@ -70,22 +70,27 @@ class TidyLogger:
 
     def debug(self, message: str, *args, **kwargs) -> None:
         """Log a debug message."""
+        kwargs.setdefault("stacklevel", 2)
         self.logger.debug(message, *args, **kwargs)
 
     def info(self, message: str, *args, **kwargs) -> None:
         """Log an info message."""
+        kwargs.setdefault("stacklevel", 2)
         self.logger.info(message, *args, **kwargs)
 
     def warning(self, message: str, *args, **kwargs) -> None:
         """Log a warning message."""
+        kwargs.setdefault("stacklevel", 2)
         self.logger.warning(message, *args, **kwargs)
 
     def error(self, message: str, *args, **kwargs) -> None:
         """Log an error message."""
+        kwargs.setdefault("stacklevel", 2)
         self.logger.error(message, *args, **kwargs)
 
     def critical(self, message: str, *args, **kwargs) -> None:
         """Log a critical message."""
+        kwargs.setdefault("stacklevel", 2)
         self.logger.critical(message, *args, **kwargs)
 
     def close(self) -> None:
