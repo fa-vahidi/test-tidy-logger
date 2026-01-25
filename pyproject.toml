@@ -12,7 +12,7 @@ maintainers = [
 readme = "README.md"
 license = "GPLv3"
 license-files = ["LICEN[CS]E*"]
-requires-python = ">=3.9"
+requires-python = ">=3.10"
 dependencies = [
   "platformdirs (>=4.5.1)",
 ]
