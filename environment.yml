@@ -2,6 +2,7 @@ name: logger
 channels:
   - conda-forge
 dependencies:
+  - platformdirs
   - python
   - pytest
   - pytest-mock

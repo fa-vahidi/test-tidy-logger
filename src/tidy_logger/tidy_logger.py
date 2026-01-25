@@ -4,6 +4,8 @@ from datetime import datetime
 from logging.handlers import RotatingFileHandler
 from pathlib import Path
 
+import platformdirs
+
 try:
     from .formatters import ColoredIndentedMessageFormatter, IndentedMessageFormatter
 except ImportError:
@@ -14,14 +16,18 @@ class TidyLogger:
 
     DEFAULT_FILE_NAME: str = "log"
     DEFAULT_FILE_EXTENSION: str = ".log"
+    TIDY_LOGGER_LOG_FILE_DIR_ENV_VAR: str = "TIDY_LOGGER_LOG_FILE_DIR"
+    TIDY_LOGGER_LOG_FILE_NAME_ENV_VAR: str = "TIDY_LOGGER_LOG_FILE_NAME"
 
     def __init__(
         self,
-        file_name: None | str | Path = None,
+        app_name: str | None = None,
+        app_author: str | None = None,
+        log_file_name: str | None = None,
+        log_file_directory: str | Path | None = None,
         file_mode: str = "a",
         console_level: int | str = logging.INFO,
         file_level: int | str = logging.DEBUG,
-        name: None | str = None,
         add_date_suffix_to_file_name: bool = True,
         use_file_rotation: bool = False,
         max_bytes: int = 100 * 1024 * 1024,
@@ -29,17 +35,42 @@ class TidyLogger:
     ):
         """
         Initialize the TidyLogger.
-        :param file_name: Name of the log file. If None, a default name with the current date is used.
+        :param app_name: Name of the application (used for creating the default log directory). If specified, cannot be an empty string.
+        :param app_author: Author (or company) of the application (used for creating the default log directory on some platforms). If specified, cannot be an empty string.
+        :param log_file_name: Name of the log file. If None, first checks for environment variable value, then a default name with the current date is used. if specified, cannot be an empty string.
+        :param log_file_directory: Directory to store the log file. If None, first checks for environment variable value, then uses platform-specific user log directory. If specified, cannot be an empty string.
         :param file_mode: Mode to open the log file ('a' for append, 'w' for write).
         :param console_level: Logging level for console output. Default is INFO.
         :param file_level: Logging level for file output. Default is DEBUG.
-        :param name: Name of the logger. If None, the class name is used.
         :param add_date_suffix_to_file_name: Whether to append the current date to the log file name.
         :param use_file_rotation: Whether to use rotating file handler.
         :param max_bytes: Maximum size in bytes for the log file before rotation (only if use_file_rotation is True).
         :param backup_count: Number of backup files to keep (only if use_file_rotation is True).
+        :raises ValueError: if any of the following arguments are empty strings: `app_name`, `app_author`, `file_name`, `file_directory`.
         """
-        self.logger = logging.getLogger(self.__class__.__name__ if name is None else name)
+
+        if app_name == "":
+            raise ValueError("`app_name` cannot be an empty string.")
+        if app_author == "":
+            raise ValueError("`app_author` cannot be an empty string.")
+        if log_file_name == "":
+            raise ValueError("`log_file_name` cannot be an empty string.")
+        if log_file_directory == "":
+            raise ValueError("`log_file_directory` cannot be an empty string.")
+
+        resolved_log_file_directory: Path = self._create_log_file_directory(
+            log_file_directory=log_file_directory, log_file_directory_environment_variable_name=self.TIDY_LOGGER_LOG_FILE_DIR_ENV_VAR, app_name=app_name, app_author=app_author
+        )
+
+        resolved_log_file_name: str = self._create_log_file_name(
+            log_file_name=log_file_name, log_file_name_environment_variable_name=self.TIDY_LOGGER_LOG_FILE_NAME_ENV_VAR, add_date_suffix_to_file_name=add_date_suffix_to_file_name
+        )
+
+        log_file_path: Path = resolved_log_file_directory / resolved_log_file_name
+
+        log_file_path.parent.mkdir(parents=True, exist_ok=True)
+
+        self.logger = logging.getLogger(self.__class__.__name__ if app_name is None else app_name)
         self.logger.setLevel(min(console_level, file_level))
 
         file_formatter = IndentedMessageFormatter()
@@ -48,19 +79,17 @@ class TidyLogger:
         # Avoid adding handlers if they already exist (prevents duplicate logs)
         if not self.logger.handlers:
 
-            # File handler
-            file_path: Path = self._create_file_path(file_name, add_date_suffix_to_file_name=add_date_suffix_to_file_name)
-
-            file_path.parent.mkdir(parents=True, exist_ok=True)
-
             if use_file_rotation:
-                file_handler = RotatingFileHandler(filename=file_path, mode=file_mode, maxBytes=max_bytes, backupCount=backup_count)
+                file_handler = RotatingFileHandler(filename=log_file_path, mode=file_mode, maxBytes=max_bytes, backupCount=backup_count)
             else:
-                file_handler = logging.FileHandler(filename=file_path, mode=file_mode)
+                file_handler = logging.FileHandler(filename=log_file_path, mode=file_mode)
 
             file_handler.setFormatter(file_formatter)
             file_handler.setLevel(file_level)
             self.logger.addHandler(file_handler)
+
+            print("Log file path:", log_file_path)
+            print()
 
             # Console handler
             console_handler = logging.StreamHandler()
@@ -107,40 +136,108 @@ class TidyLogger:
             self.logger.removeHandler(handler)
 
     @staticmethod
-    def _create_file_path(file_name: None | str | Path, add_date_suffix_to_file_name: bool = True) -> Path:
+    def _create_log_file_directory(
+        log_file_directory: str | Path | None = None,
+        log_file_directory_environment_variable_name: str = TIDY_LOGGER_LOG_FILE_DIR_ENV_VAR,
+        app_name: str | None = None,
+        app_author: str | None = None,
+        use_os_standard_log_directory: bool = True,
+    ) -> Path:
         """
-        Validate and normalize a log file path.
+        Determine the log file directory based on the provided argument, environment variable, and OS standard log directory, or current working directory.
+        :param log_file_directory: The log file directory. If None, checks the environment variable.
+        :param log_file_directory_environment_variable_name: The name of the environment variable to check for the log file directory. if the environment variable is not set, the function will use the OS standard log directory if `use_os_standard_log_directory` is True. Otherwise, it will default to the current working directory.
+        :param app_name: The name of the application (used for OS standard log directory).
+        :param app_author: The author of the application (used for OS standard log directory).
+        :param use_os_standard_log_directory: Whether to use the OS standard log directory if neither the argument nor the environment variable is set. Defaults to True. If False, defaults to the current working directory.
+        :return: A Path object representing the log file directory.
+        :raises ValueError: If the provided `log_file_directory` is an empty string, or if the environment variable is set to an empty string or points to a non-directory.
+        """
+
+        # explicit argument
+        if log_file_directory is not None:
+            if isinstance(log_file_directory, Path):
+                p = log_file_directory
+            elif isinstance(log_file_directory, str):
+                if not log_file_directory.strip():
+                    raise ValueError("`log_file_directory` cannot be an empty string.")
+                else:
+                    p = Path(log_file_directory.strip())
+            else:
+                raise ValueError("`log_file_directory` should be of type 'str', 'Path', or 'None'.")
+            return p.expanduser().resolve()
+
+        # environment variable
+        env_value = os.getenv(log_file_directory_environment_variable_name)
+        if env_value is not None:
+            env_value = env_value.strip()
+            if not env_value:
+                raise ValueError(f"`{log_file_directory_environment_variable_name}` environment variable is set to an empty string.")
+            p = Path(env_value)
+            if p.exists() and not p.is_dir():
+                raise ValueError(f"`{log_file_directory_environment_variable_name}` environment variable points to a non-directory: '{p}'")
+            return p.expanduser().resolve()
+
+        # OS standard log directory
+        if use_os_standard_log_directory:
+            if app_name is not None and app_author is not None:
+                return Path(platformdirs.user_log_dir(app_name, app_author)).expanduser().resolve()
+
+        # fallback: current working directory as absolute path
+        return Path.cwd().resolve()
+
+    @staticmethod
+    def _create_log_file_name(
+        log_file_name: str | None = None, log_file_name_environment_variable_name: str = TIDY_LOGGER_LOG_FILE_NAME_ENV_VAR, add_date_suffix_to_file_name: bool = True
+    ) -> str:
+        """
+        Validate and normalize a log file name.
         Adds '.log' extension if missing.
-        :param file_name: The input file name.
+        :param log_file_name: The log file name. If None, checks the environment variable, then uses the default name.
+        :param log_file_name_environment_variable_name: The name of the environment variable to check for the log file name. If the log_file_name is None and the environment variable is not set, the function will use the default log file name.
         :param add_date_suffix_to_file_name: Whether to append the current date to the log file name.
-        :return: A Path object representing the validated log file path.
-        :raises ValueError: If the file name is not null and empty, and if it is invalid.
+        :return: A string representing the validated log file name.
+        :raises ValueError: If the provided `log_file_name` is an empty string, contains null bytes, or contains invalid characters for Windows paths; or if the environment variable is set to an empty string.
         """
 
         date_suffix: str = datetime.now().strftime("%Y%m%d")
 
-        if file_name is None and add_date_suffix_to_file_name:
-            return Path("{}_{}{}".format(TidyLogger.DEFAULT_FILE_NAME, date_suffix, TidyLogger.DEFAULT_FILE_EXTENSION))
-        elif file_name is None:
-            return Path("{}{}".format(TidyLogger.DEFAULT_FILE_NAME, TidyLogger.DEFAULT_FILE_EXTENSION))
+        if log_file_name is None:
+            log_file_name_from_env: str = os.getenv(log_file_name_environment_variable_name)
+            # Check environment variable for log file name
+            if log_file_name_from_env is not None:
+                env_value = log_file_name_from_env.strip()
+                if not env_value:
+                    raise ValueError(f"`{log_file_name_environment_variable_name}` environment variable is set to an empty string.")
+                # Use the environment variable value as the log file name and add the date suffix
+                elif add_date_suffix_to_file_name:
+                    p = Path(env_value)
+                    suffix = p.suffix if p.suffix else TidyLogger.DEFAULT_FILE_EXTENSION
+                    new_name = f"{p.stem}_{date_suffix}{suffix}"
+                    p = p.with_name(new_name)
+                    return TidyLogger._validate_file_name(str(p))
+                # Use the environment variable value as the log file name without adding the date suffix
+                else:
+                    p = Path(env_value)
+                    if p.suffix == "":
+                        p = p.with_suffix(TidyLogger.DEFAULT_FILE_EXTENSION)
+                    return TidyLogger._validate_file_name(str(p))
+            # No environment variable set, use default file name with the date suffix
+            elif add_date_suffix_to_file_name:
+                return "{}_{}{}".format(TidyLogger.DEFAULT_FILE_NAME, date_suffix, TidyLogger.DEFAULT_FILE_EXTENSION)
+            # No environment variable set, use default file name without date suffix
+            else:
+                return "{}{}".format(TidyLogger.DEFAULT_FILE_NAME, TidyLogger.DEFAULT_FILE_EXTENSION)
 
-        if isinstance(file_name, (str, Path)):
-            p = Path(file_name)
-            s = str(p)
+        # Log file name provided explicitly
+        if isinstance(log_file_name, str):
+            log_file_name = log_file_name.strip()
+            if not log_file_name:
+                raise ValueError("`log_file_name` cannot be empty.")
+            if "\0" in log_file_name:
+                raise ValueError("`log_file_name` contains null byte.")
 
-            if not s.strip():
-                raise ValueError("`file_name` cannot be empty.")
-            if "\0" in s:
-                raise ValueError("`file_name` contains null byte.")
-
-            if os.name == "nt":
-                invalid_chars = set(r'<>:"/\\|?*')
-                if any(ch in s for ch in invalid_chars):
-                    raise ValueError("`file_name` contains invalid characters for Windows paths.")
-                reserved = {"CON", "PRN", "AUX", "NUL"} | {f"COM{i}" for i in range(1, 10)} | {f"LPT{i}" for i in range(1, 10)}
-                for part in p.parts:
-                    if Path(part).stem.upper() in reserved:
-                        raise ValueError("`file_name` path contains reserved Windows device name component.")
+            p = Path(log_file_name)
 
             if add_date_suffix_to_file_name:
                 suffix = p.suffix if p.suffix else TidyLogger.DEFAULT_FILE_EXTENSION
@@ -150,6 +247,26 @@ class TidyLogger:
                 if p.suffix == "":
                     p = p.with_suffix(TidyLogger.DEFAULT_FILE_EXTENSION)
 
-            return p
+            return TidyLogger._validate_file_name(str(p))
 
-        raise ValueError("'file_name' should be of type 'str', 'Path', or 'None'.")
+        raise ValueError("`log_file_name` should be of type 'str', or 'None'.")
+
+    @staticmethod
+    def _validate_file_name(file_name: str) -> str:
+        """
+        Validate a file name for invalid characters on Windows.
+        Raises ValueError if invalid characters are found.
+        :param file_name: The file name to validate.
+        :return: The validated file name.
+        :raises ValueError: If the file name contains invalid characters for Windows paths.
+        """
+        if os.name == "nt":
+            invalid_chars = set(r'<>:"/\\|?*')
+            if any(ch in file_name for ch in invalid_chars):
+                raise ValueError("`log_file_name` contains invalid characters for Windows paths.")
+            reserved = {"CON", "PRN", "AUX", "NUL"} | {f"COM{i}" for i in range(1, 10)} | {f"LPT{i}" for i in range(1, 10)}
+            for part in Path(file_name).parts:
+                if Path(part).stem.upper() in reserved:
+                    raise ValueError("`log_file_name` contains reserved Windows device name component.")
+
+        return file_name

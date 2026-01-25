@@ -13,7 +13,9 @@ readme = "README.md"
 license = "GPLv3"
 license-files = ["LICEN[CS]E*"]
 requires-python = ">=3.9"
-dependencies = []
+dependencies = [
+  "platformdirs (>=4.5.1)",
+]
 
 [dependency-groups]
 dev = [
@@ -26,12 +28,12 @@ repository  = "https://github.com/fa-vahidi/test-tidy-logger"
 issues = "https://github.com/fa-vahidi/test-tidy-logger/issues"
 
 [tool.poetry]
-version = "0.0.0"  # according to: https://github.com/mtkennerly/poetry-dynamic-versioning
 classifiers = [
     "Programming Language :: Python :: 3",
     "Operating System :: OS Independent",
     "License :: OSI Approved :: GNU General Public License v3 (GPLv3)",
 ]
+version = "0.0.0"  # according to: https://github.com/mtkennerly/poetry-dynamic-versioning
 
 [tool.poetry.requires-plugins]
 poetry-dynamic-versioning = { version = ">=1.0.0,<2.0.0", extras = ["plugin"] }
