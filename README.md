@@ -54,7 +54,7 @@ python -m test_module.py
 
 The logs will appear on the console with color-coded log levels, as shown below:
 
-<img src="assets/tidy_logger_console_output.png" alt="console output" width="672" height="305">
+<img src="https://raw.githubusercontent.com/fa-vahidi/test-tidy-logger/main/assets/tidy_logger_console_output.png" alt="console output" width="672" height="305">
 
 ## Options
 
