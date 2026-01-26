@@ -32,6 +32,7 @@ jobs:
 
   check_code_style:
     name: Check Code Style
+    if: github.ref_type == 'branch'
     runs-on: ubuntu-latest
     steps:
 
@@ -91,8 +92,9 @@ jobs:
           fi
 
   check_tests_directory:
-    needs: check_code_style
     name: Check 'tests' Directory
+    if: github.ref_type == 'branch'
+    needs: check_code_style
     runs-on: ubuntu-latest
     outputs:
       tests_exists: ${{ steps.check_tests_directory.outputs.tests_exists }}
@@ -120,9 +122,9 @@ jobs:
           cat $GITHUB_OUTPUT
 
   test_python_no_env:
+    name: Test Python Code on Operating System
     needs: [check_code_style, check_tests_directory]
     if: ${{ needs.check_tests_directory.outputs.tests_exists == 'true' }}
-    name: Test Python Code on Operating System
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
@@ -157,9 +159,9 @@ jobs:
           pytest tests/
 
   test_python_poetry:
+    name: Test Python Code Using Poetry Virtual Environment
     needs: [check_code_style, check_tests_directory]
     if: ${{ needs.check_tests_directory.outputs.tests_exists == 'true' }}
-    name: Test Python Code Using Poetry Virtual Environment
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
@@ -208,9 +210,9 @@ jobs:
           poetry run pytest tests/
 
   test_python_conda:
+    name: Test Python Code Using conda Virtual Environment
     needs: [check_code_style, check_tests_directory]
     if: ${{ needs.check_tests_directory.outputs.tests_exists == 'true' }}
-    name: Test Python Code Using conda Virtual Environment
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
