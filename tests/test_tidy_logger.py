@@ -146,9 +146,9 @@ def test_create_log_file_name():
             TidyLogger._create_log_file_name(log_file_name=file_name_with_invalid_chars)
 
         # Reserved names
-        file_name_with_reserved_names: str = "boa/null/aux.log"
+        file_name_with_reserved_names: str = "boa/null/aux.log"  # 'null' is not a reserved names on Windows, but 'aux'.
         with pytest.raises(ValueError):
-            TidyLogger._create_log_file_name(log_file_name=file_name_with_reserved_names)
+            TidyLogger._create_log_file_name(log_file_name=file_name_with_reserved_names, add_date_suffix_to_file_name=False)
 
         # Environment variable will be used – file name with invalid characters
         log_file_name_env_var_value: str = "inva|id:log*name?.log"
@@ -161,7 +161,21 @@ def test_create_log_file_name():
         log_file_name_env_var_value: str = "PRN"
         environ[TidyLogger.TIDY_LOGGER_LOG_FILE_NAME_ENV_VAR] = log_file_name_env_var_value
         with pytest.raises(ValueError):
+            TidyLogger._create_log_file_name(add_date_suffix_to_file_name=False)
+        environ.pop(TidyLogger.TIDY_LOGGER_LOG_FILE_NAME_ENV_VAR)
+
+        # Environment variable will be used – file name with reserved names
+        log_file_name_env_var_value: str = "boa/nul/aux.log"  # 'nul' and 'aux' is a reserved name on Windows, but 'aux' will get the date suffix!
+        environ[TidyLogger.TIDY_LOGGER_LOG_FILE_NAME_ENV_VAR] = log_file_name_env_var_value
+        with pytest.raises(ValueError):
             TidyLogger._create_log_file_name()
+        environ.pop(TidyLogger.TIDY_LOGGER_LOG_FILE_NAME_ENV_VAR)
+
+        # Environment variable will be used – file name with reserved names
+        log_file_name_env_var_value: str = "boa/null/aux.log"
+        environ[TidyLogger.TIDY_LOGGER_LOG_FILE_NAME_ENV_VAR] = log_file_name_env_var_value
+        with pytest.raises(ValueError):
+            TidyLogger._create_log_file_name(add_date_suffix_to_file_name=False)
         environ.pop(TidyLogger.TIDY_LOGGER_LOG_FILE_NAME_ENV_VAR)
 
 
