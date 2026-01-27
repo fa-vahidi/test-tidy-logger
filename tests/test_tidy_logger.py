@@ -17,83 +17,83 @@ def test_create_log_file_name():
     date_suffix: str = datetime.now().strftime("%Y%m%d")
 
     # File name is None
-    log_file_name: str = TidyLogger._create_log_file_name(None)
+    log_file_name: Path = TidyLogger._create_log_file_name(None)
 
-    assert isinstance(log_file_name, str), "File name is None: the returned file path must be a string."
+    assert isinstance(log_file_name, Path), "File name is None: the returned file path must be a Path."
 
-    assert Path(log_file_name).stem[: len(TidyLogger.DEFAULT_FILE_NAME)] == TidyLogger.DEFAULT_FILE_NAME, "File name is None: the file stem must be the default file name."
+    assert log_file_name.stem[: len(TidyLogger.DEFAULT_FILE_NAME)] == TidyLogger.DEFAULT_FILE_NAME, "File name is None: the file stem must be the default file name."
 
-    assert Path(log_file_name).stem == "{}_{}".format(TidyLogger.DEFAULT_FILE_NAME, date_suffix), "File name is None: the file stem must contain the date suffix."
+    assert log_file_name.stem == "{}_{}".format(TidyLogger.DEFAULT_FILE_NAME, date_suffix), "File name is None: the file stem must contain the date suffix."
 
-    assert Path(log_file_name).suffix == TidyLogger.DEFAULT_FILE_EXTENSION, "File name is None: the file extension of must be the default extension."
+    assert log_file_name.suffix == TidyLogger.DEFAULT_FILE_EXTENSION, "File name is None: the file extension of must be the default extension."
 
-    assert Path(log_file_name).parent == Path("."), "File name is None: the parent directory must be the current directory."
+    assert log_file_name.parent == Path("."), "File name is None: the parent directory must be the current directory."
 
     # File name is None and no date suffix
-    log_file_name: str = TidyLogger._create_log_file_name(None, add_date_suffix_to_file_name=False)
+    log_file_name: Path = TidyLogger._create_log_file_name(None, add_date_suffix_to_file_name=False)
 
-    assert isinstance(log_file_name, str), "File name is None and no date suffix: the returned file path must be a string."
+    assert isinstance(log_file_name, Path), "File name is None and no date suffix: the returned file path must be a Path."
 
-    assert Path(log_file_name).stem == TidyLogger.DEFAULT_FILE_NAME, "File name is None and no date suffix: the file stem must be the default file name without the date suffix."
+    assert log_file_name.stem == TidyLogger.DEFAULT_FILE_NAME, "File name is None and no date suffix: the file stem must be the default file name without the date suffix."
 
-    assert Path(log_file_name).suffix == TidyLogger.DEFAULT_FILE_EXTENSION, "File name is None and no date suffix: the file extension of must be the default extension."
+    assert log_file_name.suffix == TidyLogger.DEFAULT_FILE_EXTENSION, "File name is None and no date suffix: the file extension of must be the default extension."
 
-    assert Path(log_file_name).parent == Path("."), "File name is None and no date suffix: the parent directory must be the current directory."
+    assert log_file_name.parent == Path("."), "File name is None and no date suffix: the parent directory must be the current directory."
 
     # File name without extension
-    log_file_name: str = TidyLogger._create_log_file_name(log_file_name="test_log")
+    log_file_name: Path = TidyLogger._create_log_file_name(log_file_name="test_log")
 
-    assert isinstance(log_file_name, str), "File name without extension: the returned file path must be a Path object."
+    assert isinstance(log_file_name, Path), "File name without extension: the returned file path must be a Path."
 
-    assert Path(log_file_name).stem == "test_log_{}".format(date_suffix), "File name without extension: the file stem must contain the date suffix."
+    assert log_file_name.stem == "test_log_{}".format(date_suffix), "File name without extension: the file stem must contain the date suffix."
 
-    assert Path(log_file_name).suffix == TidyLogger.DEFAULT_FILE_EXTENSION, "File name without extension: the file extension must be the default extension."
+    assert log_file_name.suffix == TidyLogger.DEFAULT_FILE_EXTENSION, "File name without extension: the file extension must be the default extension."
 
-    assert Path(log_file_name).parent == Path("."), "File name without extension: the parent directory must be the current directory."
+    assert log_file_name.parent == Path("."), "File name without extension: the parent directory must be the current directory."
 
     # File name without extension and no date suffix
-    log_file_name: str = TidyLogger._create_log_file_name(log_file_name="test_log", add_date_suffix_to_file_name=False)
+    log_file_name: Path = TidyLogger._create_log_file_name(log_file_name="test_log", add_date_suffix_to_file_name=False)
 
-    assert isinstance(log_file_name, str), "File name without extension and no date suffix: the returned file path must be a Path object."
+    assert isinstance(log_file_name, Path), "File name without extension and no date suffix: the returned file path must be a Path."
 
-    assert Path(log_file_name).stem == "test_log", "File name without extension and no date suffix: the file stem must be the same as specified."
+    assert log_file_name.stem == "test_log", "File name without extension and no date suffix: the file stem must be the same as specified."
 
-    assert Path(log_file_name).suffix == TidyLogger.DEFAULT_FILE_EXTENSION, "File name without extension and no date suffix: the file extension must be the default extension."
+    assert log_file_name.suffix == TidyLogger.DEFAULT_FILE_EXTENSION, "File name without extension and no date suffix: the file extension must be the default extension."
 
-    assert Path(log_file_name).parent == Path("."), "File name without extension and no date suffix: the parent directory must be the current directory."
+    assert log_file_name.parent == Path("."), "File name without extension and no date suffix: the parent directory must be the current directory."
 
     # File name with extension
-    log_file_name: str = TidyLogger._create_log_file_name(log_file_name="test_log.txt")
+    log_file_name: Path = TidyLogger._create_log_file_name(log_file_name="test_log.txt")
 
-    assert isinstance(log_file_name, str), "File name with extension: the returned file path must be a Path object."
+    assert isinstance(log_file_name, Path), "File name with extension: the returned file path must be a Path."
 
-    assert Path(log_file_name).stem == "test_log_{}".format(date_suffix), "File name with extension: the file stem must contain the date suffix."
+    assert log_file_name.stem == "test_log_{}".format(date_suffix), "File name with extension: the file stem must contain the date suffix."
 
-    assert Path(log_file_name).suffix == ".txt", "File name with extension: the file extension must be the same as specified."
+    assert log_file_name.suffix == ".txt", "File name with extension: the file extension must be the same as specified."
 
-    assert Path(log_file_name).parent == Path("."), "File name with extension: the parent directory must be the current directory."
+    assert log_file_name.parent == Path("."), "File name with extension: the parent directory must be the current directory."
 
     # File name with extension and no date suffix
-    log_file_name: str = TidyLogger._create_log_file_name(log_file_name="test_log.txt", add_date_suffix_to_file_name=False)
+    log_file_name: Path = TidyLogger._create_log_file_name(log_file_name="test_log.txt", add_date_suffix_to_file_name=False)
 
-    assert isinstance(log_file_name, str), "File name with extension and no date suffix: the returned file path must be a Path object."
+    assert isinstance(log_file_name, Path), "File name with extension and no date suffix: the returned file path must be a Path."
 
-    assert Path(log_file_name).stem == "test_log", "File name with extension and no date suffix: the file stem must be the same as specified."
+    assert log_file_name.stem == "test_log", "File name with extension and no date suffix: the file stem must be the same as specified."
 
-    assert Path(log_file_name).suffix == ".txt", "File name with extension and no date suffix: the file extension must be the same as specified."
+    assert log_file_name.suffix == ".txt", "File name with extension and no date suffix: the file extension must be the same as specified."
 
-    assert Path(log_file_name).parent == Path("."), "File name with extension and no date suffix: the parent directory must be the current directory."
+    assert log_file_name.parent == Path("."), "File name with extension and no date suffix: the parent directory must be the current directory."
 
     # File name with parent directory and extension
-    log_file_name: str = TidyLogger._create_log_file_name(log_file_name="parent_dir/test_log.txt")
+    log_file_name: Path = TidyLogger._create_log_file_name(log_file_name="parent_dir/test_log.txt")
 
-    assert isinstance(log_file_name, str), "File name with parent directory and extension: the returned file path must be a Path object."
+    assert isinstance(log_file_name, Path), "File name with parent directory and extension: the returned file path must be a Path."
 
-    assert Path(log_file_name).stem == "test_log_{}".format(date_suffix), "File name with parent directory and extension: the file stem must be the same as specified."
+    assert log_file_name.stem == "test_log_{}".format(date_suffix), "File name with parent directory and extension: the file stem must be the same as specified."
 
-    assert Path(log_file_name).suffix == ".txt", "File name with parent directory and extension: the file extension must be the same as specified."
+    assert log_file_name.suffix == ".txt", "File name with parent directory and extension: the file extension must be the same as specified."
 
-    assert Path(log_file_name).parent == Path("parent_dir"), "File name with parent directory and extension: the parent directory must be the same as specified."
+    assert log_file_name.parent == Path("parent_dir"), "File name with parent directory and extension: the parent directory must be the same as specified."
 
     # Environment variable will be used – file name without extension
     log_file_name_env_var_value: str = "env_default_log_name"
@@ -101,17 +101,17 @@ def test_create_log_file_name():
     # set environment variable TIDY_LOGGER_DEFAULT_LOG_FILE_NAME
     environ[TidyLogger.TIDY_LOGGER_LOG_FILE_NAME_ENV_VAR] = log_file_name_env_var_value
 
-    log_file_name: str = TidyLogger._create_log_file_name()
+    log_file_name: Path = TidyLogger._create_log_file_name()
 
-    assert isinstance(log_file_name, str), "File name is None, env value is set: the returned file path must be a string."
+    assert isinstance(log_file_name, Path), "File name is None, env value is set: the returned file path must be a Path."
 
-    assert Path(log_file_name).stem == "{}_{}".format(
+    assert log_file_name.stem == "{}_{}".format(
         Path(log_file_name_env_var_value).stem, date_suffix
     ), "File name is None, env value is set: the file stem must contain the date suffix."
 
-    assert Path(log_file_name).suffix == TidyLogger.DEFAULT_FILE_EXTENSION, "File name is None, env value is set: the file extension of must be the default extension."
+    assert log_file_name.suffix == TidyLogger.DEFAULT_FILE_EXTENSION, "File name is None, env value is set: the file extension of must be the default extension."
 
-    assert Path(log_file_name).parent == Path("."), "File name is None, env value is set: the parent directory must be the current directory."
+    assert log_file_name.parent == Path("."), "File name is None, env value is set: the parent directory must be the current directory."
 
     # remove the environment variable
     environ.pop(TidyLogger.TIDY_LOGGER_LOG_FILE_NAME_ENV_VAR)
@@ -122,17 +122,17 @@ def test_create_log_file_name():
     # set environment variable TIDY_LOGGER_DEFAULT_LOG_FILE_NAME
     environ[TidyLogger.TIDY_LOGGER_LOG_FILE_NAME_ENV_VAR] = log_file_name_env_var_value
 
-    log_file_name: str = TidyLogger._create_log_file_name()
+    log_file_name: Path = TidyLogger._create_log_file_name()
 
-    assert isinstance(log_file_name, str), "File name is None, env value is set: the returned file path must be a string."
+    assert isinstance(log_file_name, Path), "File name is None, env value is set: the returned file path must be a Path."
 
-    assert Path(log_file_name).stem == "{}_{}".format(
+    assert log_file_name.stem == "{}_{}".format(
         Path(log_file_name_env_var_value).stem, date_suffix
     ), "File name is None, env value is set: the file stem must contain the date suffix."
 
-    assert Path(log_file_name).suffix == ".txt", "File name is None, env value is set: the file extension must be the same as specified."
+    assert log_file_name.suffix == ".txt", "File name is None, env value is set: the file extension must be the same as specified."
 
-    assert Path(log_file_name).parent == Path("."), "File name is None, env value is set: the parent directory must be the current directory."
+    assert log_file_name.parent == Path("."), "File name is None, env value is set: the parent directory must be the current directory."
 
     # remove the environment variable
     environ.pop(TidyLogger.TIDY_LOGGER_LOG_FILE_NAME_ENV_VAR)
@@ -169,7 +169,7 @@ def test_log_file_creation():
 
     # File name is None
     log_file_directory: Path = TidyLogger._create_log_file_directory()
-    log_file_name: str = TidyLogger._create_log_file_name(None)
+    log_file_name: Path = TidyLogger._create_log_file_name(None)
     log_file_path: Path = log_file_directory / log_file_name
     TidyLogger(log_file_name=None).close()
 
@@ -180,7 +180,7 @@ def test_log_file_creation():
     # A single file name
     log_file_directory: Path = TidyLogger._create_log_file_directory()
     file_name: str = "test_log"
-    log_file_name: str = TidyLogger._create_log_file_name(log_file_name=file_name)
+    log_file_name: Path = TidyLogger._create_log_file_name(log_file_name=file_name)
     log_file_path: Path = log_file_directory / log_file_name
     TidyLogger(log_file_name=file_name).close()
 
@@ -191,7 +191,7 @@ def test_log_file_creation():
     # A file name with parent directory
     log_file_directory: Path = TidyLogger._create_log_file_directory()
     file_name: str = "test_dir/test_log"
-    log_file_name: str = TidyLogger._create_log_file_name(log_file_name=file_name)
+    log_file_name: Path = TidyLogger._create_log_file_name(log_file_name=file_name)
     log_file_path: Path = log_file_directory / log_file_name
     TidyLogger(log_file_name=file_name).close()
 
@@ -202,7 +202,7 @@ def test_log_file_creation():
     # A file name with multiple parent directories
     log_file_directory: Path = TidyLogger._create_log_file_directory()
     file_name: str = "parent2/parent1/test_log"
-    log_file_name: str = TidyLogger._create_log_file_name(log_file_name=file_name)
+    log_file_name: Path = TidyLogger._create_log_file_name(log_file_name=file_name)
     log_file_path: Path = log_file_directory / log_file_name
     TidyLogger(log_file_name=file_name).close()
 
@@ -213,7 +213,7 @@ def test_log_file_creation():
     # A file path that is created using app_name and app_author
     log_file_directory: Path = TidyLogger._create_log_file_directory(app_name="AwsomeApp", app_author="GreatAuthor")
     file_name: str = "parent2/parent1/test_log"
-    log_file_name: str = TidyLogger._create_log_file_name(log_file_name=file_name)
+    log_file_name: Path = TidyLogger._create_log_file_name(log_file_name=file_name)
     log_file_path: Path = log_file_directory / log_file_name
     TidyLogger(app_name="AwsomeApp", app_author="GreatAuthor", log_file_name=file_name).close()
 
