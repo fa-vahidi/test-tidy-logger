@@ -108,7 +108,7 @@ jobs:
           echo "Current directory:"
           pwd
           echo "Directory content:"
-          ls -a
+          ls -la
           if [ -d "./tests" ]; then
             echo "tests_exists=true" >> $GITHUB_OUTPUT
             echo "::notice title=Check 'tests' directory::'tests' directory exists."
@@ -128,7 +128,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [ubuntu-latest]
+        os: [ubuntu-latest, windows-latest, macos-latest]
         python-version: ['3.x']
       fail-fast: false  # Continue testing other platforms even if one fails
     steps:
@@ -141,20 +141,31 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
 
+      - name: Dump pip Cache Directory
+        id: pip-cache-directory
+        shell: bash
+        run: |
+          echo "pip_cache_dir=$(pip cache dir)" >> $GITHUB_OUTPUT
+          echo "pip Cache Directory: $(pip cache dir)"
+          echo ""
+          echo "Content of GITHUB_OUTPUT file at $GITHUB_OUTPUT:"
+          cat $GITHUB_OUTPUT
+
       - name: Cache pip Packages
         id: cache-pip-packages
         uses: actions/cache@v4
         with:
-          path: |
-            ~/.cache/pip
+          path: ${{ steps.pip-cache-directory.outputs.pip_cache_dir }}
           key: pip-packages-${{ runner.os }}-python-${{ steps.set-up-python.outputs.python-version }}-${{ hashFiles('requirements.txt') }}
-          restore-keys: pip-packages-${{ runner.os }}-python-${{ matrix.python-version }}-
+          restore-keys: pip-packages-${{ runner.os }}-python-${{ steps.set-up-python.outputs.python-version }}-
 
       - name: Install Dependencies (Without Virtual Environment)
+        shell: bash
         run: |
           pip install -r ./requirements.txt
 
       - name: Run Python Tests
+        shell: bash
         run: |
           pytest tests/
 
