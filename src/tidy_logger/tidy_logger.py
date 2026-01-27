@@ -62,7 +62,7 @@ class TidyLogger:
             log_file_directory=log_file_directory, log_file_directory_environment_variable_name=self.TIDY_LOGGER_LOG_FILE_DIR_ENV_VAR, app_name=app_name, app_author=app_author
         )
 
-        resolved_log_file_name: str = self._create_log_file_name(
+        resolved_log_file_name: Path = self._create_log_file_name(
             log_file_name=log_file_name, log_file_name_environment_variable_name=self.TIDY_LOGGER_LOG_FILE_NAME_ENV_VAR, add_date_suffix_to_file_name=add_date_suffix_to_file_name
         )
 
@@ -189,7 +189,7 @@ class TidyLogger:
     @staticmethod
     def _create_log_file_name(
         log_file_name: str | None = None, log_file_name_environment_variable_name: str = TIDY_LOGGER_LOG_FILE_NAME_ENV_VAR, add_date_suffix_to_file_name: bool = True
-    ) -> str:
+    ) -> Path:
         """
         Validate and normalize a log file name.
         Adds '.log' extension if missing.
@@ -215,19 +215,19 @@ class TidyLogger:
                     suffix = p.suffix if p.suffix else TidyLogger.DEFAULT_FILE_EXTENSION
                     new_name = f"{p.stem}_{date_suffix}{suffix}"
                     p = p.with_name(new_name)
-                    return TidyLogger._validate_file_name(str(p))
+                    return TidyLogger._validate_file_name(p)
                 # Use the environment variable value as the log file name without adding the date suffix
                 else:
                     p = Path(env_value)
                     if p.suffix == "":
                         p = p.with_suffix(TidyLogger.DEFAULT_FILE_EXTENSION)
-                    return TidyLogger._validate_file_name(str(p))
+                    return TidyLogger._validate_file_name(p)
             # No environment variable set, use default file name with the date suffix
             elif add_date_suffix_to_file_name:
-                return "{}_{}{}".format(TidyLogger.DEFAULT_FILE_NAME, date_suffix, TidyLogger.DEFAULT_FILE_EXTENSION)
+                return Path("{}_{}{}".format(TidyLogger.DEFAULT_FILE_NAME, date_suffix, TidyLogger.DEFAULT_FILE_EXTENSION))
             # No environment variable set, use default file name without date suffix
             else:
-                return "{}{}".format(TidyLogger.DEFAULT_FILE_NAME, TidyLogger.DEFAULT_FILE_EXTENSION)
+                return Path("{}{}".format(TidyLogger.DEFAULT_FILE_NAME, TidyLogger.DEFAULT_FILE_EXTENSION))
 
         # Log file name provided explicitly
         if isinstance(log_file_name, str):
@@ -247,12 +247,12 @@ class TidyLogger:
                 if p.suffix == "":
                     p = p.with_suffix(TidyLogger.DEFAULT_FILE_EXTENSION)
 
-            return TidyLogger._validate_file_name(str(p))
+            return TidyLogger._validate_file_name(p)
 
         raise ValueError("`log_file_name` should be of type 'str', or 'None'.")
 
     @staticmethod
-    def _validate_file_name(file_name: str) -> str:
+    def _validate_file_name(file_name: Path) -> Path:
         """
         Validate a file name for invalid characters on Windows.
         Raises ValueError if invalid characters are found.
@@ -260,13 +260,12 @@ class TidyLogger:
         :return: The validated file name.
         :raises ValueError: If the file name contains invalid characters for Windows paths.
         """
-        if os.name == "nt":
-            invalid_chars = set(r'<>:"/\\|?*')
-            if any(ch in file_name for ch in invalid_chars):
-                raise ValueError("`log_file_name` contains invalid characters for Windows paths.")
-            reserved = {"CON", "PRN", "AUX", "NUL"} | {f"COM{i}" for i in range(1, 10)} | {f"LPT{i}" for i in range(1, 10)}
-            for part in Path(file_name).parts:
-                if Path(part).stem.upper() in reserved:
-                    raise ValueError("`log_file_name` contains reserved Windows device name component.")
+        if not isinstance(file_name, (str, Path)):
+            raise ValueError("`file_name` should be of type 'str' or 'Path'.")
+        elif isinstance(file_name, str):
+            file_name = Path(file_name)
+
+        if os.name == "nt" and any(os.path.isreserved(part) for part in file_name.parts):
+            raise ValueError("`file_name` contains reserved Windows device name component. file_name: '{}'".format(file_name))
 
         return file_name
