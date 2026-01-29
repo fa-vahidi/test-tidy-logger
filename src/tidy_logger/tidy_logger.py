@@ -29,6 +29,7 @@ class TidyLogger:
         console_level: int | str = logging.INFO,
         file_level: int | str = logging.DEBUG,
         add_date_suffix_to_file_name: bool = True,
+        print_log_file_path: bool = True,
         use_file_rotation: bool = False,
         max_bytes: int = 100 * 1024 * 1024,
         backup_count: int = 10,
@@ -43,6 +44,7 @@ class TidyLogger:
         :param console_level: Logging level for console output. Default is INFO.
         :param file_level: Logging level for file output. Default is DEBUG.
         :param add_date_suffix_to_file_name: Whether to append the current date to the log file name.
+        :param print_log_file_path: Whether to print the log file path to the console upon initialization, or not.
         :param use_file_rotation: Whether to use rotating file handler.
         :param max_bytes: Maximum size in bytes for the log file before rotation (only if use_file_rotation is True).
         :param backup_count: Number of backup files to keep (only if use_file_rotation is True).
@@ -88,8 +90,9 @@ class TidyLogger:
             file_handler.setLevel(file_level)
             self.logger.addHandler(file_handler)
 
-            print("Log file path:", log_file_path)
-            print()
+            if print_log_file_path:
+                print("Log file path:", log_file_path)
+                print()
 
             # Console handler
             console_handler = logging.StreamHandler()
