@@ -199,7 +199,7 @@ jobs:
             ~/.local/bin
             ~/.local/share/pypoetry
           key: pypoetry-packages-${{ runner.os }}-python-${{ steps.set-up-python.outputs.python-version }}-${{ hashFiles('pyproject.toml') }}
-          restore-keys: pypoetry-packages-${{ runner.os }}-python-${{ matrix.python-version }}-
+          restore-keys: pypoetry-packages-${{ runner.os }}-python-${{ steps.set-up-python.outputs.python-version }}-
 
       - name: Install Poetry
         run: |
