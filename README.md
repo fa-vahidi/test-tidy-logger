@@ -1,11 +1,20 @@
-# test-tidy-logger
+# tidy-logger
 
 
 [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
 [![pre-commit](https://img.shields.io/badge/pre--commit-enabled-brightgreen?logo=pre-commit)](https://github.com/pre-commit/pre-commit)
 [![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
 [![GitHub Release](https://img.shields.io/github/v/release/fa-vahidi/tidy-logger)](https://github.com/fa-vahidi/tidy-logger/releases)
-[![PyPI](https://img.shields.io/pypi/v/tidy-logger)](https://pypi.org/project/tidy-logger/)
+[![GitHub Tag](https://img.shields.io/github/v/tag/fa-vahidi/tidy-logger)](https://github.com/fa-vahidi/tidy-logger/tags)
+[![GitHub branch check runs](https://img.shields.io/github/check-runs/fa-vahidi/tidy-logger/main)](https://github.com/fa-vahidi/tidy-logger)
+[![PyPI - tidy-logger](https://img.shields.io/pypi/v/tidy-logger)](https://pypi.org/project/tidy-logger/)
+[![PyPI - Implementation](https://img.shields.io/pypi/implementation/tidy-logger)](https://pypi.org/project/tidy-logger/)
+[![PyPI - Format](https://img.shields.io/pypi/format/tidy-logger)](https://pypi.org/project/tidy-logger/)
+[![PyPI - Status](https://img.shields.io/pypi/status/tidy-logger)](https://pypi.org/project/tidy-logger/)
+[![PyPI - Python Version](https://img.shields.io/pypi/pyversions/tidy-logger)](https://pypi.org/project/tidy-logger/)
+[![PyPI - Downloads](https://img.shields.io/pypi/dm/tidy-logger)](https://pypi.org/project/tidy-logger/)
+[![Conda Version](https://img.shields.io/conda/vn/conda-forge/tidy-logger)](https://anaconda.org/channels/conda-forge/packages/tidy-logger/overview)
+[![Conda Platform](https://img.shields.io/conda/pn/conda-forge/tidy-logger)](https://anaconda.org/channels/conda-forge/packages/tidy-logger/overview)
 
 
 A repository for a Python logging utility that generates indented log messages with color-coding for different log levels on the console, and also supports logging to files for better tracking and debugging.
