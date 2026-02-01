@@ -179,7 +179,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [ubuntu-latest, windows-latest, macos-latest]
+        os: [ubuntu-latest, macos-latest] # Poetry plugins have problem on Windows runners (Project uses poetry-dynamic-versioning plugin)
         python-version: ['3.x']
       fail-fast: false  # Continue testing other platforms even if one fails
     steps:
