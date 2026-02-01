@@ -204,7 +204,7 @@ jobs:
               echo "$HOME/.local/bin" >> "$GITHUB_PATH"
               ;;
             Windows)
-              echo "$APPDATA/Python/Scripts" >> "$GITHUB_PATH"
+              echo "$APPDATA\\Python\\Scripts" >> "$GITHUB_PATH"
               ;;
             *)
               echo "Unknown Runner OS: $RUNNER_OS"
@@ -216,6 +216,9 @@ jobs:
           echo ""
           echo "Content of GITHUB_PATH file at $GITHUB_PATH:"
           cat $GITHUB_PATH
+
+      - name: Configure Poetry Virtualv Environment Location
+        run: poetry config virtualenvs.in-project true
 
       - name: Retrieve Poetry Directories
         id: poetry-directories
