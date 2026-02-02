@@ -370,8 +370,6 @@ jobs:
       - name: Set Up conda Environment and Run Python Tests
         shell: bash
         run: |
-          #conda init
-          #source ~/.bashrc
           source "$CONDA/etc/profile.d/conda.sh"
           conda info
           conda env list
