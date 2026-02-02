@@ -310,8 +310,8 @@ jobs:
           echo "Content of GITHUB_OUTPUT file at $GITHUB_OUTPUT:"
           cat $GITHUB_OUTPUT
 
-      - name: Retrieve conda Directories
-        id: conda-directories
+      - name: Retrieve conda Directories on Windows
+        id: conda-directories-on-windows
         if: ${{ runner.os == 'Windows' }}
         shell: pwsh
         run: |
@@ -338,11 +338,25 @@ jobs:
 
       - name: Cache conda Packages
         id: cache-conda-packages
+        if: ${{ runner.os != 'Windows' }}
         uses: actions/cache@v4
         with:
           path: |
             ${{ steps.conda-directories.outputs.pkgs_dirs }}
             ${{ steps.conda-directories.outputs.envs_dirs }}
+          key: conda-packages-${{ runner.os }}-python-${{ needs.check_code_style.outputs.latest_python_version }}-${{ hashFiles('environment.yml') }}
+          restore-keys: |
+            conda-packages-${{ runner.os }}-python-${{ needs.check_code_style.outputs.latest_python_version }}-
+            conda-packages-${{ runner.os }}-python-
+
+      - name: Cache conda Packages on Windows
+        id: cache-conda-packages-on-windows
+        if: ${{ runner.os == 'Windows' }}
+        uses: actions/cache@v4
+        with:
+          path: |
+            ${{ steps.conda-directories-on-windows.outputs.pkgs_dirs }}
+            ${{ steps.conda-directories-on-windows.outputs.envs_dirs }}
           key: conda-packages-${{ runner.os }}-python-${{ needs.check_code_style.outputs.latest_python_version }}-${{ hashFiles('environment.yml') }}
           restore-keys: |
             conda-packages-${{ runner.os }}-python-${{ needs.check_code_style.outputs.latest_python_version }}-
