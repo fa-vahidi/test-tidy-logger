@@ -315,8 +315,10 @@ jobs:
         if: ${{ runner.os == 'Windows' }}
         shell: pwsh
         run: |
+          # Save conda info
           conda info --json | Out-File info.json -Encoding utf8
-          python - <<END
+          # Create Python script to write outputs
+          $script = @"
           import json, os
           info = json.load(open("info.json"))
           out = os.environ["GITHUB_OUTPUT"]
@@ -326,7 +328,10 @@ jobs:
                   f.write("\n".join(values) + "\nEOF\n")
           write("pkgs_dirs", info["pkgs_dirs"])
           write("envs_dirs", info["envs_dirs"])
-          END
+          "@
+          $script | Out-File script.py -Encoding utf8
+          # Run Python
+          python script.py
           Write-Host ""
           Write-Host "Content of GITHUB_OUTPUT file at $env:GITHUB_OUTPUT:"
           Get-Content $env:GITHUB_OUTPUT
