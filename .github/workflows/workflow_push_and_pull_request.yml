@@ -160,7 +160,9 @@ jobs:
         with:
           path: ${{ steps.pip-cache-directory.outputs.pip_cache_dir }}
           key: pip-packages-${{ runner.os }}-python-${{ steps.set-up-python.outputs.python-version }}-${{ hashFiles('requirements.txt') }}
-          restore-keys: pip-packages-${{ runner.os }}-python-${{ steps.set-up-python.outputs.python-version }}-
+          restore-keys: |
+            pip-packages-${{ runner.os }}-python-${{ steps.set-up-python.outputs.python-version }}-
+            pip-packages-${{ runner.os }}-python-
 
       - name: Install Dependencies (Without Virtual Environment)
         shell: bash
@@ -243,7 +245,9 @@ jobs:
             ${{ steps.poetry-directories.outputs.data_dir }}
             ${{ steps.poetry-directories.outputs.virtual_envs_dir }}
           key: pypoetry-packages-${{ runner.os }}-python-${{ steps.set-up-python.outputs.python-version }}-${{ hashFiles('pyproject.toml') }}
-          restore-keys: pypoetry-packages-${{ runner.os }}-python-${{ steps.set-up-python.outputs.python-version }}-
+          restore-keys: |
+            pypoetry-packages-${{ runner.os }}-python-${{ steps.set-up-python.outputs.python-version }}-
+            pypoetry-packages-${{ runner.os }}-python-
 
       - name: List the Poetry Configuration
         shell: bash
@@ -268,7 +272,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [ubuntu-latest]
+        os: [ubuntu-latest, windows-latest, macos-latest]
       fail-fast: false  # Continue testing other platforms even if one fails
     steps:
 
@@ -286,6 +290,17 @@ jobs:
           # "conda-incubator/setup-miniconda" does not understand "3.x", so the latest python version is retrieved from the "check_code_style" job
           python-version: ${{ needs.check_code_style.outputs.latest_python_version }}
 
+      - name: Retrieve conda Directories
+        id: conda-directories
+        shell: bash
+        run: |
+          info=$(conda info --json)
+          echo "pkgs_dirs=$(echo "$info" | python -c "import sys,json; print('\n'.join(json.load(sys.stdin)['pkgs_dirs']))")" >> $GITHUB_OUTPUT
+          echo "envs_dirs=$(echo "$info" | python -c "import sys,json; print('\n'.join(json.load(sys.stdin)['envs_dirs']))")" >> $GITHUB_OUTPUT
+          echo ""
+          echo "Content of GITHUB_OUTPUT file at $GITHUB_OUTPUT:"
+          cat $GITHUB_OUTPUT
+
       - name: Check conda Einvironment Parameter
         shell: bash
         run: |
@@ -296,10 +311,12 @@ jobs:
         uses: actions/cache@v4
         with:
           path: |
-            ~/conda_pkgs_dir
-            ${{ env.CONDA }}/pkgs
+            ${{ steps.conda-directories.outputs.pkgs_dirs }}
+            ${{ steps.conda-directories.outputs.envs_dirs }}
           key: conda-packages-${{ runner.os }}-python-${{ needs.check_code_style.outputs.latest_python_version }}-${{ hashFiles('environment.yml') }}
-          restore-keys: conda-packages-${{ runner.os }}-python-${{ needs.check_code_style.outputs.latest_python_version }}-
+          restore-keys: |
+            conda-packages-${{ runner.os }}-python-${{ needs.check_code_style.outputs.latest_python_version }}-
+            conda-packages-${{ runner.os }}-python-
 
       - name: Set Up conda Environment and Run Python Tests
         shell: bash
