@@ -34,6 +34,8 @@ jobs:
     name: Check Code Style
     if: github.ref_type == 'branch'
     runs-on: ubuntu-latest
+    outputs:
+      latest_python_version: ${{ steps.set-up-python.outputs.python-version }}
     steps:
 
       - &checkout_code
@@ -46,6 +48,7 @@ jobs:
           fetch-depth: 0
 
       - name: Set Up Python
+        id: set-up-python
         uses: actions/setup-python@v6
         with:
           python-version: '3.x'
@@ -141,7 +144,7 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
 
-      - name: Dump pip Cache Directory
+      - name: Retrieve pip Cache Directory
         id: pip-cache-directory
         shell: bash
         run: |
@@ -157,7 +160,9 @@ jobs:
         with:
           path: ${{ steps.pip-cache-directory.outputs.pip_cache_dir }}
           key: pip-packages-${{ runner.os }}-python-${{ steps.set-up-python.outputs.python-version }}-${{ hashFiles('requirements.txt') }}
-          restore-keys: pip-packages-${{ runner.os }}-python-${{ steps.set-up-python.outputs.python-version }}-
+          restore-keys: |
+            pip-packages-${{ runner.os }}-python-${{ steps.set-up-python.outputs.python-version }}-
+            pip-packages-${{ runner.os }}-python-
 
       - name: Install Dependencies (Without Virtual Environment)
         shell: bash
@@ -176,7 +181,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [ubuntu-latest]
+        os: [ubuntu-latest, macos-latest] # Poetry plugins have problem on Windows runners (Project uses poetry-dynamic-versioning plugin)
         python-version: ['3.x']
       fail-fast: false  # Continue testing other platforms even if one fails
     steps:
@@ -189,34 +194,74 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
 
+      - name: Install Poetry
+        shell: bash
+        run: |
+          echo "Runner OS: $RUNNER_OS"
+
+          curl -sSL https://install.python-poetry.org | python3 -
+
+          case $RUNNER_OS in
+            Linux | macOS)
+              echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+              ;;
+            Windows)
+              echo "$APPDATA\\Python\\Scripts" >> "$GITHUB_PATH"
+              ;;
+            *)
+              echo "Unknown Runner OS: $RUNNER_OS"
+              exit 1
+              ;;
+          esac
+
+          echo "$(poetry --version) has been installed."
+          echo ""
+          echo "Content of GITHUB_PATH file at $GITHUB_PATH:"
+          cat $GITHUB_PATH
+
+      - name: Configure Poetry Virtualv Environment Location
+        run: poetry config virtualenvs.in-project true
+
+      - name: Retrieve Poetry Directories
+        id: poetry-directories
+        shell: bash
+        run: |
+          echo "cache_dir=$(poetry config cache-dir)" >> $GITHUB_OUTPUT
+          echo "Poetry Cache Directory:       $(poetry config cache-dir)"
+          echo "data_dir=$(poetry config data-dir)" >> $GITHUB_OUTPUT
+          echo "Poetry Data Directory:        $(poetry config cache-dir)"
+          echo "virtual_envs_dir=$(poetry config virtualenvs.path)" >> $GITHUB_OUTPUT
+          echo "Poetry virtualenvs Directory: $(poetry config virtualenvs.path)"
+          echo ""
+          echo "Content of GITHUB_OUTPUT file at $GITHUB_OUTPUT:"
+          cat $GITHUB_OUTPUT
+
       - name: Cache Poetry Packages
         id: cache-poetry-packages
         uses: actions/cache@v4
         with:
           path: |
-            ~/.cache/pypoetry
-            ~/.config/pypoetry
-            ~/.local/bin
-            ~/.local/share/pypoetry
+            ${{ steps.poetry-directories.outputs.cache_dir }}
+            ${{ steps.poetry-directories.outputs.data_dir }}
+            ${{ steps.poetry-directories.outputs.virtual_envs_dir }}
           key: pypoetry-packages-${{ runner.os }}-python-${{ steps.set-up-python.outputs.python-version }}-${{ hashFiles('pyproject.toml') }}
-          restore-keys: pypoetry-packages-${{ runner.os }}-python-${{ steps.set-up-python.outputs.python-version }}-
-
-      - name: Install Poetry
-        run: |
-          curl -sSL https://install.python-poetry.org | python3 -
-          export PATH="$HOME/.local/bin:$PATH"
-          echo "$(poetry --version) has been installed."
+          restore-keys: |
+            pypoetry-packages-${{ runner.os }}-python-${{ steps.set-up-python.outputs.python-version }}-
+            pypoetry-packages-${{ runner.os }}-python-
 
       - name: List the Poetry Configuration
+        shell: bash
         run: |
           poetry config --list
 
       - name: Install Dependencies Using Poetry
+        shell: bash
         run: |
           poetry install --no-root
           poetry env info
 
       - name: Run Python Tests Inside the Poetry Environment
+        shell: bash
         run: |
           poetry run pytest tests/
 
@@ -227,8 +272,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [ubuntu-latest]
-        python-version: ['3.14']
+        os: [ubuntu-latest, windows-latest, macos-latest]
       fail-fast: false  # Continue testing other platforms even if one fails
     steps:
 
@@ -238,29 +282,94 @@ jobs:
         uses: conda-incubator/setup-miniconda@v3
         with:
           activate-environment: logger
-          auto-activate-base: false
+          auto-activate: false
           auto-update-conda: true
+          channels: conda-forge # According to environment.yml file
+          conda-remove-defaults: "true" # According to environment.yml file
           miniconda-version: "latest"
-          python-version: ${{ matrix.python-version }}
+          # "conda-incubator/setup-miniconda" does not understand "3.x", so the latest python version is retrieved from the "check_code_style" job
+          python-version: ${{ needs.check_code_style.outputs.latest_python_version }}
+
+      - name: Retrieve conda Directories
+        id: conda-directories
+        if: ${{ runner.os != 'Windows' }}
+        shell: bash
+        run: |
+          info=$(conda info --json)
+          {
+            echo "pkgs_dirs<<EOF"
+            echo "$info" | python -c "import sys,json; print('\n'.join(json.load(sys.stdin)['pkgs_dirs']))"
+            echo "EOF"
+            echo "envs_dirs<<EOF"
+            echo "$info" | python -c "import sys,json; print('\n'.join(json.load(sys.stdin)['envs_dirs']))"
+            echo "EOF"
+          } >> $GITHUB_OUTPUT
+          #echo "pkgs_dirs=$(echo "$info" | python -c "import sys,json; print('\n'.join(json.load(sys.stdin)['pkgs_dirs']))")" >> $GITHUB_OUTPUT
+          #echo "envs_dirs=$(echo "$info" | python -c "import sys,json; print('\n'.join(json.load(sys.stdin)['envs_dirs']))")" >> $GITHUB_OUTPUT
+          echo ""
+          echo "Content of GITHUB_OUTPUT file at $GITHUB_OUTPUT:"
+          cat $GITHUB_OUTPUT
+
+      - name: Retrieve conda Directories on Windows
+        id: conda-directories-on-windows
+        if: ${{ runner.os == 'Windows' }}
+        shell: pwsh
+        run: |
+          # Save conda info
+          conda info --json | Out-File info.json -Encoding utf8
+          # Create Python script to write outputs
+          $script = @"
+          import json, os
+          info = json.load(open("info.json"))
+          out = os.environ["GITHUB_OUTPUT"]
+          def write(name, values):
+              with open(out, "a") as f:
+                  f.write(f"{name}<<EOF\n")
+                  f.write("\n".join(values) + "\nEOF\n")
+          write("pkgs_dirs", info["pkgs_dirs"])
+          write("envs_dirs", info["envs_dirs"])
+          "@
+          $script | Out-File script.py -Encoding utf8
+          # Run Python
+          python script.py
+          Write-Host ""
+          Write-Host "Content of GITHUB_OUTPUT file at $env:GITHUB_OUTPUT:"
+          Get-Content $env:GITHUB_OUTPUT
 
       - name: Check conda Einvironment Parameter
+        shell: bash
         run: |
           echo "conda path: $CONDA"
 
       - name: Cache conda Packages
         id: cache-conda-packages
+        if: ${{ runner.os != 'Windows' }}
         uses: actions/cache@v4
         with:
           path: |
-            ~/conda_pkgs_dir
-            ${{ env.CONDA }}/pkgs
-          key: conda-packages-${{ runner.os }}-python-${{ matrix.python-version }}-${{ hashFiles('environment.yml') }}
-          restore-keys: conda-packages-${{ runner.os }}-python-${{ matrix.python-version }}-
+            ${{ steps.conda-directories.outputs.pkgs_dirs }}
+            ${{ steps.conda-directories.outputs.envs_dirs }}
+          key: conda-packages-${{ runner.os }}-python-${{ needs.check_code_style.outputs.latest_python_version }}-${{ hashFiles('environment.yml') }}
+          restore-keys: |
+            conda-packages-${{ runner.os }}-python-${{ needs.check_code_style.outputs.latest_python_version }}-
+            conda-packages-${{ runner.os }}-python-
+
+      - name: Cache conda Packages on Windows
+        id: cache-conda-packages-on-windows
+        if: ${{ runner.os == 'Windows' }}
+        uses: actions/cache@v4
+        with:
+          path: |
+            ${{ steps.conda-directories-on-windows.outputs.pkgs_dirs }}
+            ${{ steps.conda-directories-on-windows.outputs.envs_dirs }}
+          key: conda-packages-${{ runner.os }}-python-${{ needs.check_code_style.outputs.latest_python_version }}-${{ hashFiles('environment.yml') }}
+          restore-keys: |
+            conda-packages-${{ runner.os }}-python-${{ needs.check_code_style.outputs.latest_python_version }}-
+            conda-packages-${{ runner.os }}-python-
 
       - name: Set Up conda Environment and Run Python Tests
+        shell: bash
         run: |
-          conda init
-          source ~/.bashrc
           source "$CONDA/etc/profile.d/conda.sh"
           conda info
           conda env list
