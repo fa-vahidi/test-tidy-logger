@@ -295,8 +295,16 @@ jobs:
         shell: bash
         run: |
           info=$(conda info --json)
-          echo "pkgs_dirs=$(echo "$info" | python -c "import sys,json; print('\n'.join(json.load(sys.stdin)['pkgs_dirs']))")" >> $GITHUB_OUTPUT
-          echo "envs_dirs=$(echo "$info" | python -c "import sys,json; print('\n'.join(json.load(sys.stdin)['envs_dirs']))")" >> $GITHUB_OUTPUT
+          {
+            echo "pkgs_dirs<<EOF"
+            echo "$info" | python -c "import sys,json; print('\n'.join(json.load(sys.stdin)['pkgs_dirs']))"
+            echo "EOF"
+            echo "envs_dirs<<EOF"
+            echo "$info" | python -c "import sys,json; print('\n'.join(json.load(sys.stdin)['envs_dirs']))"
+            echo "EOF"
+          } >> $GITHUB_OUTPUT
+          #echo "pkgs_dirs=$(echo "$info" | python -c "import sys,json; print('\n'.join(json.load(sys.stdin)['pkgs_dirs']))")" >> $GITHUB_OUTPUT
+          #echo "envs_dirs=$(echo "$info" | python -c "import sys,json; print('\n'.join(json.load(sys.stdin)['envs_dirs']))")" >> $GITHUB_OUTPUT
           echo ""
           echo "Content of GITHUB_OUTPUT file at $GITHUB_OUTPUT:"
           cat $GITHUB_OUTPUT
